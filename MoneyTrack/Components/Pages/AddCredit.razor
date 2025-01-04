@@ -1,0 +1,234 @@
+﻿@page "/add-credit"
+@using MoneyTrack.Models
+@using MoneyTrack.Services
+@inject AuthenticationStateService authStateService
+@inject ICreditService creditService
+@inject BalanceService balanceService
+@inject NavigationManager navigationManager
+
+<h3>Credit Management</h3>
+
+@if (authStateService.IsAuthenticated())
+{
+    <div>
+        <h4>Welcome, @authStateService.GetAuthenticatedUser().User_Name!</h4>
+        <h5>Your Current Balance: @currentBalance.ToString("C")</h5>
+
+        <form>
+            <div>
+                <label>Credit Title:</label>
+                <input type="text" @bind="newCredit.Credittitle" required />
+            </div>
+            <div>
+                <label>Amount:</label>
+                <input type="number" @bind="newCredit.Creditamount" step="0.01" required />
+            </div>
+            <div>
+                <label>Credit Date:</label>
+                <input type="date" @bind="newCredit.Creditdate" required />
+            </div>
+            <div>
+                <label>Tags:</label>
+                <select @bind="newCredit.Credittags" required>
+                    <option value="" disabled selected>Others</option>
+                    <option value="Bill Sharing">Bill Sharing</option>
+                    <option value="Family Expense">Family Expense</option>
+                    <option value="Lend/Borrow">Lend/Borrow</option>
+                    <option value="Personal Use">Personal Use</option>
+                </select>
+            </div>
+            <div>
+                <label>Remarks (Optional):</label>
+                <textarea @bind="newCredit.Creditremarks"></textarea>
+            </div>
+            <button type="button" @onclick="Add_Credit" class="add-credit-btn">Add Credit</button>
+        </form>
+
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <p class="error-message">@errorMessage</p>
+        }
+        @if (!string.IsNullOrEmpty(successMessage))
+        {
+            <p class="success-message">@successMessage</p>
+        }
+    </div>
+
+    <h4>Your Credits</h4>
+
+    <div class="sort-dropdown">
+        <label for="sort-select">Sort By:</label>
+        <select id="sort-select" @onchange="SortTransactions">
+            <option value="date">Recent Date</option>
+            <option value="amount">Highest Amount</option>
+        </select>
+    </div>
+
+    @if (userCredits != null && userCredits.Count > 0)
+    {
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Amount</th>
+                    <th>Date</th>
+                    <th>Tags</th>
+                    <th>Remarks</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var credit in userCredits)
+                {
+                    <tr>
+                        <td>@credit.Credittitle</td>
+                        <td>@credit.Creditamount.ToString("C")</td>
+                        <td>@credit.Creditdate.ToShortDateString()</td>
+                        <td>@credit.Credittags</td>
+                        <td>@(string.IsNullOrWhiteSpace(credit.Creditremarks) ? "N/A" : credit.Creditremarks)</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    else
+    {
+        <p>No credits recorded for @authStateService.GetAuthenticatedUser().User_Name</p>
+    }
+}
+else
+{
+    navigationManager.NavigateTo("/"); // Redirect to the login page if not authenticated
+}
+
+<style>
+    h4, h5 {
+        margin-bottom: 10px;
+    }
+
+    form {
+        margin-bottom: 20px;
+    }
+
+    label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: bold;
+    }
+
+    .add-credit-btn {
+        background-color: #007bff;
+        color: #fff;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+
+    .error-message {
+        color: red;
+        font-weight: bold;
+    }
+
+    .success-message {
+        color: green;
+        font-weight: bold;
+    }
+
+    .sort-dropdown {
+        margin-bottom: 10px;
+    }
+
+    .table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+    }
+
+        .table th, .table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+
+    .scrollable-body {
+        display: block;
+        max-height: 300px;
+        overflow-y: auto;
+    }
+</style>
+
+@code {
+    private List<Credit> userCredits = new();
+    private Credit newCredit = new Credit();
+    private string errorMessage;
+    private string successMessage;
+    private float currentBalance = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        newCredit.Creditdate = DateTime.Today;
+        await LoadUserCredits();
+        await LoadBalance();
+    }
+
+    private async Task LoadUserCredits()
+    {
+        var user = authStateService.GetAuthenticatedUser();
+        if (user != null)
+        {
+            userCredits = await creditService.GetCreditsByUserIdAsync(user.UserId);
+            userCredits = userCredits.OrderByDescending(c => c.Creditdate).ToList(); // Default sort by date
+        }
+    }
+
+    private async Task LoadBalance()
+    {
+        var user = authStateService.GetAuthenticatedUser();
+        if (user != null)
+        {
+            currentBalance = balanceService.GetBalance(user.UserId);
+        }
+    }
+
+    private async Task Add_Credit()
+    {
+        var user = authStateService.GetAuthenticatedUser();
+        if (user != null)
+        {
+            newCredit.UserId = user.UserId;
+
+            try
+            {
+                await creditService.AddCreditAsync(newCredit);
+                await LoadUserCredits();
+                await LoadBalance();
+                newCredit = new Credit { Creditdate = DateTime.Today };
+                successMessage = "Credit added successfully!";
+                errorMessage = null;
+            }
+            catch (InvalidOperationException ex)
+            {
+                errorMessage = ex.Message;
+                successMessage = null;
+            }
+            catch (Exception ex)
+            {
+                errorMessage = $"Error adding credit: {ex.Message}";
+                successMessage = null;
+            }
+        }
+    }
+
+    private void SortTransactions(ChangeEventArgs e)
+    {
+        var sortBy = e.Value?.ToString();
+        if (sortBy == "date")
+        {
+            userCredits = userCredits.OrderByDescending(c => c.Creditdate).ToList();
+        }
+        else if (sortBy == "amount")
+        {
+            userCredits = userCredits.OrderByDescending(c => c.Creditamount).ToList();
+        }
+    }
+}

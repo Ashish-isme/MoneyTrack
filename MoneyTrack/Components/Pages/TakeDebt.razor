@@ -1,0 +1,172 @@
+﻿@page "/add-debt"
+@using MoneyTrack.Models
+@using MoneyTrack.Services
+@inject AuthenticationStateService authStateService
+@inject IDebtService debtService
+@inject BalanceService balanceService
+@inject NavigationManager navigationManager
+
+<h3>Debt Management</h3>
+
+@if (authStateService.IsAuthenticated())
+{
+    <div>
+        <h4>Welcome, @authStateService.GetAuthenticatedUser().User_Name!</h4>
+        <h5>Your Current Balance: @currentBalance.ToString("C")</h5>
+
+        <form>
+            <div>
+                <label for="debttitle">Debt Title:</label>
+                <input type="text" id="debttitle" @bind="newDebt.Debttitle" required />
+            </div>
+            <div>
+                <label for="debtamount">Amount:</label>
+                <input type="number" id="debtamount" @bind="newDebt.Debtamount" step="0.01" min="0" required />
+            </div>
+            <div>
+                <label for="debtdate">Debt Date:</label>
+                <input type="date" id="debtdate" @bind="newDebt.Debtdate" required />
+            </div>
+            <div>
+                <label>Tags:</label>
+                <select @bind="newDebt.Debttags" required>
+                    <option value="" disabled selected>Others</option>
+                    <option value="Bill Sharing">Bill Sharing</option>
+                    <option value="Family Expense">Family Expense</option>
+                    <option value="Lend/Borrow">Lend/Borrow</option>
+                    <option value="Personal Use">Personal Use</option>
+                </select>
+            </div>
+            <div>
+                <label for="debtremarks">Remarks:</label>
+                <textarea id="debtremarks" @bind="newDebt.Debtremarks"></textarea>
+            </div>
+            <button type="button" @onclick="AddDebt">Add Debt</button>
+        </form>
+
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <p class="error-message">@errorMessage</p>
+        }
+    </div>
+
+    <h4>Your Debts</h4>
+    @if (userDebts != null && userDebts.Count > 0)
+    {
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Amount</th>
+                    <th>Date</th>
+                    <th>Tags</th>
+                    <th>Remarks</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var debt in userDebts)
+                {
+                    <tr>
+                        <td>@debt.Debttitle</td>
+                        <td>@debt.Debtamount.ToString("C")</td>
+                        <td>@debt.Debtdate.ToShortDateString()</td>
+                        <td>@debt.Debttags</td>
+                        <td>@debt.Debtremarks</td>
+                        <td>
+                            <button class="btn btn-danger" @onclick="() => ClearDebt(debt.DebtId)">Clear Debt</button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    else
+    {
+        <p>No debts found for @authStateService.GetAuthenticatedUser().User_Name</p>
+    }
+}
+else
+{
+    navigationManager.NavigateTo("/"); // Redirect to the login page if not authenticated
+}
+
+@code {
+    private List<Debt> userDebts = new();
+    private Debt newDebt = new Debt();
+    private string errorMessage;
+    private float currentBalance = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        newDebt.Debtdate = DateTime.Today;
+        await LoadUserDebts();
+        await LoadBalance();
+    }
+
+    private async Task LoadUserDebts()
+    {
+        var user = authStateService.GetAuthenticatedUser();
+        if (user != null)
+        {
+            userDebts = await debtService.GetDebtsByUserIdAsync(user.UserId);
+        }
+    }
+
+    private async Task LoadBalance()
+    {
+        var user = authStateService.GetAuthenticatedUser();
+        if (user != null)
+        {
+            currentBalance = balanceService.GetBalance(user.UserId);
+        }
+    }
+
+    private async Task AddDebt()
+    {
+        var user = authStateService.GetAuthenticatedUser();
+        if (user != null)
+        {
+            newDebt.UserId = user.UserId;
+
+            try
+            {
+                await debtService.AddDebtAsync(newDebt);
+                await LoadUserDebts();
+                await LoadBalance();
+                newDebt = new Debt { Debtdate = DateTime.Today };
+                errorMessage = null;
+            }
+            catch (Exception ex)
+            {
+                errorMessage = $"Error adding debt: {ex.Message}";
+                Console.WriteLine(errorMessage);
+            }
+        }
+    }
+
+    private async Task ClearDebt(int debtId)
+    {
+        var debtToClear = userDebts.FirstOrDefault(d => d.DebtId == debtId);
+
+        if (debtToClear != null)
+        {
+            try
+            {
+                // Pass the full debt amount as the paymentAmount
+                await debtService.PayDebtAsync(debtId, debtToClear.Debtamount);
+                await LoadUserDebts();
+                await LoadBalance();
+            }
+            catch (Exception ex)
+            {
+                errorMessage = $"Error clearing debt: {ex.Message}";
+                Console.WriteLine(errorMessage);
+            }
+        }
+        else
+        {
+            errorMessage = $"Debt with ID {debtId} not found.";
+        }
+    }
+}

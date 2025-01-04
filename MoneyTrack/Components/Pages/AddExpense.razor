@@ -1,0 +1,228 @@
+﻿@page "/add-expense"
+@using MoneyTrack.Models
+@using MoneyTrack.Services
+@inject AuthenticationStateService authStateService
+@inject IExpenseService expenseService
+@inject BalanceService balanceService
+@inject NavigationManager navigationManager
+
+<h3>Expense Management</h3>
+
+@if (authStateService.IsAuthenticated())
+{
+    <div>
+        <h4>Welcome, @authStateService.GetAuthenticatedUser().User_Name!</h4>
+        <h5>Your Current Balance: @currentBalance.ToString("C")</h5>
+
+        <form>
+            <div>
+                <label>Expense Title:</label>
+                <input type="text" @bind="newExpense.Expensetitle" required />
+            </div>
+            <div>
+                <label>Amount:</label>
+                <input type="number" @bind="newExpense.Expenseamount" step="0.01" required />
+            </div>
+            <div>
+                <label>Expense Date:</label>
+                <input type="date" @bind="newExpense.Expensedate" required />
+            </div>
+            <div>
+                <label>Tags:</label>
+                <select @bind="newExpense.Expensetags" required>
+                    <option value="" disabled selected>Others</option>
+                    <option value="Bill Sharing">Bill Sharing</option>
+                    <option value="Family Expense">Family Expense</option>
+                    <option value="Lend/Borrow">Lend/Borrow</option>
+                    <option value="Personal Use">Personal Use</option>
+                </select>
+            </div>
+            <div>
+                <label>Remarks (Optional):</label>
+                <textarea @bind="newExpense.Expenseremarks"></textarea>
+            </div>
+            <button type="button" @onclick="Add_Expense" class="add-expense-btn">Add Expense</button>
+        </form>
+
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <p class="error-message">@errorMessage</p>
+        }
+        @if (!string.IsNullOrEmpty(successMessage))
+        {
+            <p class="success-message">@successMessage</p>
+        }
+    </div>
+
+    <h4>Your Expenses</h4>
+
+    <div class="sort-dropdown">
+        <label for="sort-select">Sort By:</label>
+        <select id="sort-select" @onchange="SortExpenses">
+            <option value="date">Recent Date</option>
+            <option value="amount">Highest Amount</option>
+        </select>
+    </div>
+
+    @if (userExpenses != null && userExpenses.Count > 0)
+    {
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Amount</th>
+                    <th>Date</th>
+                    <th>Tags</th>
+                    <th>Remarks</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var expense in userExpenses)
+                {
+                    <tr>
+                        <td>@expense.Expensetitle</td>
+                        <td>@expense.Expenseamount.ToString("C")</td>
+                        <td>@expense.Expensedate.ToShortDateString()</td>
+                        <td>@expense.Expensetags</td>
+                        <td>@(string.IsNullOrWhiteSpace(expense.Expenseremarks) ? "N/A" : expense.Expenseremarks)</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    else
+    {
+        <p>No expenses recorded for @authStateService.GetAuthenticatedUser().User_Name</p>
+    }
+}
+else
+{
+    navigationManager.NavigateTo("/"); // Redirect to the login page if not authenticated
+}
+
+<style>
+    h4, h5 {
+        margin-bottom: 10px;
+    }
+
+    form {
+        margin-bottom: 20px;
+    }
+
+    label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: bold;
+    }
+
+    .add-expense-btn {
+        background-color: #007bff;
+        color: #fff;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+
+    .error-message {
+        color: red;
+        font-weight: bold;
+    }
+
+    .success-message {
+        color: green;
+        font-weight: bold;
+    }
+
+    .sort-dropdown {
+        margin-bottom: 10px;
+    }
+
+    .table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+    }
+
+        .table th, .table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+</style>
+
+@code {
+    private List<Expense> userExpenses = new();
+    private Expense newExpense = new Expense();
+    private string errorMessage;
+    private string successMessage;
+    private float currentBalance = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        newExpense.Expensedate = DateTime.Today;
+        await LoadUserExpenses();
+        await LoadBalance();
+    }
+
+    private async Task LoadUserExpenses()
+    {
+        var user = authStateService.GetAuthenticatedUser();
+        if (user != null)
+        {
+            userExpenses = await expenseService.GetExpensesByUserIdAsync(user.UserId);
+            userExpenses = userExpenses.OrderByDescending(e => e.Expensedate).ToList(); // Default sort by date
+        }
+    }
+
+    private async Task LoadBalance()
+    {
+        var user = authStateService.GetAuthenticatedUser();
+        if (user != null)
+        {
+            currentBalance = balanceService.GetBalance(user.UserId);
+        }
+    }
+
+    private async Task Add_Expense()
+    {
+        var user = authStateService.GetAuthenticatedUser();
+        if (user != null)
+        {
+            newExpense.UserId = user.UserId;
+
+            try
+            {
+                await expenseService.AddExpenseAsync(newExpense);
+                await LoadUserExpenses();
+                await LoadBalance();
+                newExpense = new Expense { Expensedate = DateTime.Today };
+                successMessage = "Expense added successfully!";
+                errorMessage = null;
+            }
+            catch (InvalidOperationException ex)
+            {
+                errorMessage = ex.Message;
+                successMessage = null;
+            }
+            catch (Exception ex)
+            {
+                errorMessage = $"Error adding expense: {ex.Message}";
+                successMessage = null;
+            }
+        }
+    }
+
+    private void SortExpenses(ChangeEventArgs e)
+    {
+        var sortBy = e.Value?.ToString();
+        if (sortBy == "date")
+        {
+            userExpenses = userExpenses.OrderByDescending(e => e.Expensedate).ToList();
+        }
+        else if (sortBy == "amount")
+        {
+            userExpenses = userExpenses.OrderByDescending(e => e.Expenseamount).ToList();
+        }
+    }
+}

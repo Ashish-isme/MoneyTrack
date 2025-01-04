@@ -1,0 +1,208 @@
+﻿@page "/transactions"
+@using MoneyTrack.Models
+@using MoneyTrack.Services
+@inject ITransactionService TransactionService
+@inject AuthenticationStateService authStateService
+@inject NavigationManager navigationManager
+
+<h3>Transaction History</h3>
+
+@if (!authStateService.IsAuthenticated())
+{
+    <p>You are not authenticated. Please log in first.</p>
+    navigationManager.NavigateTo("/login");  // Redirect to login page if not authenticated
+}
+else
+{
+    var currentUser = authStateService.GetAuthenticatedUser();
+    <div>
+        <h4>Welcome, @currentUser.User_Name</h4>
+        <p>Total Transactions: @totalTransactions.ToString("C")</p> <!-- Display total transaction value -->
+        <p>Total Number of Transactions: @userTransactions.Count</p> <!-- Display total number of transactions -->
+    </div>
+
+    @if (userTransactions != null && userTransactions.Count > 0)
+    {
+        <div>
+            <label for="sort-select">Sort By:</label>
+            <select id="sort-select" @onchange="SortTransactionsByCriteria">
+                <option value="date">Recent Date</option>
+                <option value="amount">Highest Amount</option>
+                <option value="tags">Tags</option>
+                <option value="type">Type (Credit/Debit/Debt)</option>
+            </select>
+        </div>
+
+        <div>
+            <label for="date-range">Filter by Date Range:</label>
+            <input type="date" @bind="startDate" /> to
+            <input type="date" @bind="endDate" />
+            <button @onclick="FilterByDate">Apply</button>
+        </div>
+
+        <div>
+            <label for="tags-select">Filter by Tags:</label>
+            <select id="tags-select" @onchange="FilterByTags">
+                <option value="">Select a Tag</option>
+                <option value="Salary">Salary</option>
+                <option value="Bonus">Bonus</option>
+                <option value="Investment">Investment</option>
+                <option value="Other">Other</option>
+            </select>
+        </div>
+
+        <div>
+            <label for="type-select">Filter by Type:</label>
+            <select id="type-select" @onchange="FilterByType">
+                <option value="">Select a Type</option>
+                <option value="Credit">Credit</option>
+                <option value="Debit">Debit</option>
+                <option value="Debt">Debt</option>
+            </select>
+        </div>
+
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Amount</th>
+                    <th>Date</th>
+                    <th>Type</th>
+                    <th>Tags</th>
+                    <th>Remarks</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var transaction in userTransactions)
+                {
+                    <tr>
+                        <td>@transaction.transactiontitle</td>
+                        <td>@transaction.transactionamount.ToString("C")</td>
+                        <td>@transaction.transactiondate.ToShortDateString()</td>
+                        <td>@transaction.transactiontype</td>
+                        <td>@(string.IsNullOrWhiteSpace(transaction.transactiontags) ? "N/A" : transaction.transactiontags)</td>
+                        <td>@(string.IsNullOrWhiteSpace(transaction.transactionremarks) ? "N/A" : transaction.transactionremarks)</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    else
+    {
+        <p>No transactions found.</p>
+    }
+}
+
+@code {
+    private List<Transaction> userTransactions = new();
+    private string selectedTag = "";
+    private string selectedType = ""; // New variable to store selected transaction type
+    private DateTime startDate = DateTime.Today.AddMonths(-1); // Default: last month
+    private DateTime endDate = DateTime.Today; // Default: today
+    private decimal totalTransactions = 0; // Variable to store total transaction amount
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (authStateService.IsAuthenticated())
+        {
+            await LoadTransactions();
+        }
+        else
+        {
+            navigationManager.NavigateTo("/login");  // Redirect if not authenticated
+        }
+    }
+
+    private async Task LoadTransactions()
+    {
+        var currentUser = authStateService.GetAuthenticatedUser();
+        userTransactions = TransactionService.GetTransactionsByUserId(currentUser.UserId);
+        userTransactions = userTransactions.OrderByDescending(t => t.transactiondate).ToList(); // Default sort by date
+
+        // Calculate the total transaction value
+        totalTransactions = userTransactions
+            .Where(t => t.transactiontype == "Credit")  // Inflows (Credits)
+            .Sum(t => t.transactionamount)
+            + userTransactions
+            .Where(t => t.transactiontype == "Debt")   // Debts
+            .Sum(t => t.transactionamount)
+            - userTransactions
+            .Where(t => t.transactiontype == "Debit")  // Outflows (Debits)
+            .Sum(t => t.transactionamount);
+    }
+
+    private void SortTransactionsByCriteria(ChangeEventArgs e)
+    {
+        var sortBy = e.Value?.ToString();
+        if (sortBy == "date")
+        {
+            userTransactions = userTransactions.OrderByDescending(t => t.transactiondate).ToList();
+        }
+        else if (sortBy == "amount")
+        {
+            userTransactions = userTransactions.OrderByDescending(t => t.transactionamount).ToList();
+        }
+        else if (sortBy == "tags" && !string.IsNullOrEmpty(selectedTag))
+        {
+            userTransactions = userTransactions.Where(t => t.transactiontags == selectedTag).ToList();
+        }
+        else if (sortBy == "type" && !string.IsNullOrEmpty(selectedType))
+        {
+            userTransactions = userTransactions.Where(t => t.transactiontype == selectedType).ToList();
+        }
+
+        // Recalculate total transactions after sorting
+        CalculateTotalTransactions();
+    }
+
+    private async Task FilterByDate()
+    {
+        // Filter transactions based on the selected date range
+        var currentUser = authStateService.GetAuthenticatedUser();
+        userTransactions = (TransactionService.GetTransactionsByUserId(currentUser.UserId))
+            .Where(t => t.transactiondate >= startDate && t.transactiondate <= endDate)
+            .ToList();
+
+        // Recalculate total transactions after filtering
+        CalculateTotalTransactions();
+    }
+
+    private void CalculateTotalTransactions()
+    {
+        totalTransactions = userTransactions
+            .Where(t => t.transactiontype == "Credit")  // Inflows (Credits)
+            .Sum(t => t.transactionamount)
+            + userTransactions
+            .Where(t => t.transactiontype == "Debt")   // Debts
+            .Sum(t => t.transactionamount)
+            - userTransactions
+            .Where(t => t.transactiontype == "Debit")  // Outflows (Debits)
+            .Sum(t => t.transactionamount);
+    }
+
+    private void FilterByTags(ChangeEventArgs e)
+    {
+        selectedTag = e.Value?.ToString();
+        if (!string.IsNullOrEmpty(selectedTag))
+        {
+            userTransactions = userTransactions.Where(t => t.transactiontags == selectedTag).ToList();
+        }
+        else
+        {
+            LoadTransactions();
+        }
+    }
+
+    private void FilterByType(ChangeEventArgs e)
+    {
+        selectedType = e.Value?.ToString();
+        if (!string.IsNullOrEmpty(selectedType))
+        {
+            userTransactions = userTransactions.Where(t => t.transactiontype == selectedType).ToList();
+        }
+        else
+        {
+            LoadTransactions(); // Reload all transactions if no type is selected
+        }
+    }
+}

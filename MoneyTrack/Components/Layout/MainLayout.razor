@@ -1,9 +1,16 @@
 ﻿@inherits LayoutComponentBase
+@using MoneyTrack.Services
+@inject AuthenticationStateService authStateService
+
 
 <div class="page">
-    <div class="sidebar">
-        <NavMenu />
-    </div>
+    @if (authStateService.IsAuthenticated())
+    {
+        <div class="sidebar">
+            <NavMenu />
+        </div>
+    }
+
 
     <main>
         <div class="top-row px-4">

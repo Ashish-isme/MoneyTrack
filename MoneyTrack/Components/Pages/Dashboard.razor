@@ -1,0 +1,218 @@
+﻿@page "/dashboard"
+
+@inject MoneyTrack.Services.BalanceService BalanceService
+@inject MoneyTrack.Services.ICreditService CreditService
+@inject MoneyTrack.Services.IExpenseService ExpenseService
+@inject MoneyTrack.Services.IDebtService DebtService
+@inject MoneyTrack.Services.AuthenticationStateService AuthenticationStateService
+
+@using MoneyTrack.Models
+
+<h3>Dashboard</h3>
+
+@if (user != null)
+{
+    <div class="balance-container">
+        <p>Current Balance: @currentBalance.ToString("C")</p>
+    </div>
+
+    <div class="dashboard-container">
+        <!-- Total Inflows Card -->
+        <div class="card inflows-card">
+            <h4>Total Inflows</h4>
+            <p>@totalInflows.ToString("C")</p>
+        </div>
+
+        <!-- Total Outflows Card -->
+        <div class="card outflows-card">
+            <h4>Total Outflows</h4>
+            <p>@totalOutflows.ToString("C")</p>
+        </div>
+
+        <!-- Total Debts Card -->
+        <div class="card debts-card">
+            <h4>Total Debts</h4>
+            <p>@totalDebts.ToString("C")</p>
+        </div>
+    </div>
+
+    <h4>Pending Debts</h4>
+    @if (pendingDebts != null && pendingDebts.Count > 0)
+    {
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Debt Title</th>
+                    <th>Amount</th>
+                    <th>Due Date</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var debt in pendingDebts)
+                {
+                    <tr>
+                        <td>@debt.Debttitle</td>
+                        <td>@debt.Debtamount.ToString("C")</td>
+                        <td>@debt.Debtdate.ToShortDateString()</td>
+                        <td>@(debt.Debtamount > 0 ? "Pending" : "Paid")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    else
+    {
+        <p>No pending debts.</p>
+    }
+}
+else
+{
+    <div class="login-message">
+        <h4>Please log in to view your dashboard.</h4>
+    </div>
+}
+
+<style>
+    /* Current Balance Styling */
+    .balance-container {
+        text-align: right;
+        font-size: 20px;
+        font-weight: bold;
+        margin: 10px 20px;
+        color: #007bff; /* Blue for the balance */
+    }
+
+    /* Dashboard Container Styling */
+    .dashboard-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 20px;
+        margin: 20px;
+        justify-content: space-around;
+    }
+
+    /* Card Styling */
+    .card {
+        background-color: #f9f9f9;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        padding: 20px;
+        width: 250px;
+        text-align: center;
+    }
+
+        .card h4 {
+            margin-bottom: 10px;
+            font-size: 18px;
+            color: #333;
+        }
+
+        .card p {
+            font-size: 24px;
+            font-weight: bold;
+            margin: 0;
+        }
+
+    /* Inflows Card Styling */
+    .inflows-card {
+        background-color: #d4edda; /* Light Green */
+        border-color: #c3e6cb;
+    }
+
+        .inflows-card p {
+            color: #28a745; /* Green */
+        }
+
+    /* Outflows Card Styling */
+    .outflows-card {
+        background-color: #f8d7da; /* Light Red */
+        border-color: #f5c6cb;
+    }
+
+        .outflows-card p {
+            color: #dc3545; /* Red */
+        }
+
+    /* Debts Card Styling */
+    .debts-card {
+        background-color: #f8d7da; /* Light Red */
+        border-color: #f5c6cb;
+    }
+
+        .debts-card p {
+            color: #dc3545; /* Red */
+        }
+
+    /* Pending Debts Table */
+    .table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+        border: 1px solid #ddd;
+    }
+
+        .table th, .table td {
+            padding: 10px;
+            text-align: left;
+            border: 1px solid #ddd;
+        }
+
+        .table th {
+            background-color: #f2f2f2;
+        }
+
+    /* Login Message Styling */
+    .login-message {
+        text-align: center;
+        margin-top: 50px;
+    }
+</style>
+
+@code {
+    private MoneyTrack.Models.User? user;
+    private float totalInflows;
+    private float totalOutflows;
+    private float totalDebts;
+    private float currentBalance;
+    private List<Debt> pendingDebts = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            Console.WriteLine("Initializing Dashboard...");
+
+            user = AuthenticationStateService.GetAuthenticatedUser();
+            if (user != null)
+            {
+                Console.WriteLine($"User authenticated: {user.UserName} (ID: {user.UserId})");
+
+                currentBalance = BalanceService.GetBalance(user.UserId);
+                Console.WriteLine($"Current Balance: {currentBalance}");
+
+                var credits = await CreditService.GetCreditsByUserIdAsync(user.UserId);
+                totalInflows = credits.Sum(c => c.Creditamount);
+                Console.WriteLine($"Total Inflows: {totalInflows}");
+
+                var expenses = await ExpenseService.GetExpensesByUserIdAsync(user.UserId);
+                totalOutflows = expenses.Sum(e => e.Expenseamount);
+                Console.WriteLine($"Total Outflows: {totalOutflows}");
+
+                var debts = await DebtService.GetPendingDebtsAsync(user.UserId);  // Fetch pending debts
+                pendingDebts = debts;
+                totalDebts = debts.Sum(d => d.Debtamount);
+                Console.WriteLine($"Total Debts: {totalDebts}");
+            }
+            else
+            {
+                Console.WriteLine("No user authenticated.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error initializing dashboard: {ex.Message}");
+        }
+    }
+}

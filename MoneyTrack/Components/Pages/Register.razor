@@ -1,0 +1,117 @@
+﻿@page "/register"
+@using MoneyTrack.Models
+@using MoneyTrack.Services
+@inject IUserService userService
+@inject NavigationManager navigationManager
+
+<h3>Add User</h3>
+
+<div>
+    <form>
+        <div>
+            <label>User ID:</label>
+            <input type="number" @bind="newUser.UserId" />
+        </div>
+        <div>
+            <label>User Name:</label>
+            <input type="text" @bind="newUser.UserName" />
+        </div>
+        <div>
+            <label>Password:</label>
+            <input type="password" @bind="newUser.Password" />
+        </div>
+        <div>
+            <label>Email:</label>
+            <input type="email" @bind="newUser.UserEmail" />
+        </div>
+        <div>
+            <label>Name:</label>
+            <input type="text" @bind="newUser.User_Name" />
+        </div>
+        
+        <div>
+            <label>Gender:</label>
+            <input type="text" @bind="newUser.UserGender" />
+        </div>
+        <div>
+            <label>Phone:</label>
+            <input type="tel" @bind="newUser.UserPhone" />
+        </div>
+        <button type="button" @onclick="AddNewUser">Add User</button>
+    </form>
+</div>
+
+@if (errorMessage != null)
+{
+    <p class="error-message">@errorMessage</p>
+}
+
+@* <h3>Retrieve User Information</h3>
+
+<div>
+    <label>Enter User ID to Retrieve Info:</label>
+    <input @bind="searchUserId" />
+    <button type="button" @onclick="GetUserInfo">Get User Info</button>
+</div> *@
+
+@if (retrievedUser != null)
+{
+    <h4>User Details:</h4>
+    <p><strong>Name:</strong> @retrievedUser.UserName</p>
+  
+}
+
+@code {
+    private User newUser = new User(); //obj created for User Class
+    private string errorMessage;
+
+    // New field for searching user
+    private int searchUserId;
+
+    // Field to hold retrieved user information
+    private User retrievedUser;
+
+    private async Task AddNewUser()
+    {
+        try
+        {
+            var existingUsers = await userService.LoadUsersAsync();
+            // condition check
+
+
+            await userService.SaveUserAsync(newUser);
+            // Reset the new user object after saving.
+            newUser = new User();
+            errorMessage = null; // Clear any previous error messages
+            navigationManager.NavigateTo("/");
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"An error occurred while adding the user: {ex.Message}";
+            Console.WriteLine(errorMessage); // Log for debugging
+        }
+    }
+
+    private async Task GetUserInfo()
+    {
+        try
+        {
+            var users = await userService.LoadUsersAsync();
+            retrievedUser = users.FirstOrDefault(u => u.UserId == searchUserId);
+
+            if (retrievedUser == null)
+            {
+                errorMessage = "No user found with this ID.";
+            }
+            else
+            {
+                errorMessage = null; // Clear any previous error messages
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"An error occurred while retrieving the user: {ex.Message}";
+            Console.WriteLine(errorMessage); // Log for debugging
+        }
+    }
+}
