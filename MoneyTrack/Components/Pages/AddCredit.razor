@@ -4,6 +4,7 @@
 @inject AuthenticationStateService authStateService
 @inject ICreditService creditService
 @inject BalanceService balanceService
+@inject TagService tagService
 @inject NavigationManager navigationManager
 
 <h3>Credit Management</h3>
@@ -29,13 +30,13 @@
             </div>
             <div>
                 <label>Tags:</label>
-                <select @bind="newCredit.Credittags" required>
-                    <option value="" disabled selected>Others</option>
-                    <option value="Bill Sharing">Bill Sharing</option>
-                    <option value="Family Expense">Family Expense</option>
-                    <option value="Lend/Borrow">Lend/Borrow</option>
-                    <option value="Personal Use">Personal Use</option>
-                </select>
+                <input list="tags-list" @bind="newCredit.Credittags" />
+                <datalist id="tags-list">
+                    @foreach (var tag in availableTags)
+                    {
+                        <option value="@tag"></option>
+                    }
+                </datalist>
             </div>
             <div>
                 <label>Remarks (Optional):</label>
@@ -163,12 +164,14 @@ else
     private string errorMessage;
     private string successMessage;
     private float currentBalance = 0;
+    private List<string> availableTags = new() { "Bill Sharing", "Family Expense", "Income/Loan", "Personal Use" };
 
     protected override async Task OnInitializedAsync()
     {
         newCredit.Creditdate = DateTime.Today;
         await LoadUserCredits();
         await LoadBalance();
+        await LoadCustomTags();
     }
 
     private async Task LoadUserCredits()
@@ -177,7 +180,7 @@ else
         if (user != null)
         {
             userCredits = await creditService.GetCreditsByUserIdAsync(user.UserId);
-            userCredits = userCredits.OrderByDescending(c => c.Creditdate).ToList(); // Default sort by date
+            userCredits = userCredits.OrderByDescending(c => c.Creditdate).ToList();
         }
     }
 
@@ -190,12 +193,29 @@ else
         }
     }
 
+    private async Task LoadCustomTags()
+    {
+        var user = authStateService.GetAuthenticatedUser();
+        if (user != null)
+        {
+            var customTags = tagService.GetCustomTags(user.UserId);
+            availableTags.AddRange(customTags);
+        }
+    }
+
     private async Task Add_Credit()
     {
         var user = authStateService.GetAuthenticatedUser();
         if (user != null)
         {
             newCredit.UserId = user.UserId;
+
+            // Add the tag to availableTags if it doesn't already exist
+            if (!string.IsNullOrWhiteSpace(newCredit.Credittags) && !availableTags.Contains(newCredit.Credittags))
+            {
+                tagService.AddCustomTag(user.UserId, newCredit.Credittags);
+                availableTags.Add(newCredit.Credittags);
+            }
 
             try
             {

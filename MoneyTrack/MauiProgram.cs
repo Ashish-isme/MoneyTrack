@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 using MoneyTrack.Services;
+using MudBlazor.Services;
 
 namespace MoneyTrack
 {
@@ -20,6 +21,7 @@ namespace MoneyTrack
             // Registering User Services
             builder.Services.AddSingleton<IUserService, UserService>();
             builder.Services.AddSingleton<BalanceService>();
+            builder.Services.AddSingleton<TagService>();
             builder.Services.AddSingleton<ITransactionService, TransactionService>();
             builder.Services.AddSingleton<AuthenticationStateService>();
 
