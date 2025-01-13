@@ -18,7 +18,7 @@ a, .btn-link {
 
 .content {
     padding-top: 0rem;
-    padding : 0rem;
+    padding-left : 0rem;
 }
 
 h1:focus {
@@ -193,4 +193,19 @@ h1:focus {
     font-weight: 900;
     font-style: italic;
 }
+
+/*For login and register button */
+.custom-btn {
+    background-color: #0094E4;
+    color: #fffff;
+    border: 1px solid #87CEEB;
+    font-size: 0.875rem;
+}
+
+    .custom-btn:hover {
+        background-color: #121212;
+        border: 1px solid #87CEEB;
+        color: #fff;
+    }
+
 

@@ -63,7 +63,16 @@
         <PackageReference Include="Microsoft.AspNetCore.Components.WebView.Maui" Version="$(MauiVersion)" />
         <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="8.0.0" />
         <PackageReference Include="MudBlazor" Version="7.15.0" />
-        <PackageReference Include="Radzen.Blazor" Version="5.7.2" />
+        <PackageReference Include="Radzen.Blazor" Version="5.7.5" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="Components\Images\" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Include="wwwroot\logo.png" />
+      <None Include="wwwroot\logo.svg" />
     </ItemGroup>
 
 </Project>

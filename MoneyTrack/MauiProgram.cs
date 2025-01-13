@@ -30,8 +30,10 @@ namespace MoneyTrack
             builder.Services.AddSingleton<ICreditService, CreditService>();
             builder.Services.AddSingleton<IExpenseService, ExpenseService>();
 
+
+
 #if DEBUG
-            builder.Services.AddBlazorWebViewDeveloperTools();
+            
             builder.Logging.AddDebug();
 #endif
 
