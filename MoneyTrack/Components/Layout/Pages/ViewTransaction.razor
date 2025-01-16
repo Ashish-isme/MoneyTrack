@@ -1,0 +1,238 @@
+﻿@page "/transactions"
+@using MudBlazor
+@using MoneyTrack.Models
+@using MoneyTrack.Services
+@inject ITransactionService TransactionService
+@inject AuthenticationStateService authStateService
+@inject NavigationManager navigationManager
+@inject TagService tagsService
+
+<h3>Transaction History</h3>
+
+@if (!authStateService.IsAuthenticated())
+{
+    <p>You are not authenticated. Please log in first.</p>
+    navigationManager.NavigateTo("/login");
+}
+else
+{
+    var currentUser = authStateService.GetAuthenticatedUser();
+    <div>
+        <h4>Welcome, @currentUser.User_Name</h4>
+        <p>Total Transactions: @totalTransactions.ToString("C")</p>
+        <p>Total Number of Transactions: @filteredTransactions.Count</p>
+    </div>
+
+    @if (filteredTransactions == null || filteredTransactions.Count == 0)
+    {
+        <MudAlert Severity="Severity.Warning" Variant="Variant.Filled" ContentAlignment="HorizontalAlignment.Center" ShowCloseIcon="true" CloseIconClicked="(() => CloseMe())" Visible="@alertVisible">
+            No transactions found.
+        </MudAlert>
+    }
+
+    <div>
+        <label for="search-title">Search by Title:</label>
+        <input type="text" id="search-title" @bind="searchTitle" @oninput="OnSearchChanged" placeholder="Enter title to search..." />
+    </div>
+
+    <div>
+        <label for="sort-select">Sort By:</label>
+        <select id="sort-select" @onchange="SortTransactionsByCriteria">
+            <option value="date">Recent Date</option>
+            <option value="amount">Highest Amount</option>
+        </select>
+    </div>
+
+    <div>
+        <label for="date-range">Filter by Date Range:</label>
+        <input type="date" @bind="startDate" /> to
+        <input type="date" @bind="endDate" />
+        <button @onclick="FilterByDate">Apply</button>
+    </div>
+
+    <div>
+        <label for="tags-select">Filter by Type:</label>
+        <select id="tags-select" @onchange="FilterByType">
+            <option value="">Select a Type</option>
+            <option value="Credit">Credit</option>
+            <option value="Debit">Debit</option>
+            <option value="Debt">Debt</option>
+        </select>
+    </div>
+
+    <div>
+        <label for="tag-select">Filter by Tag:</label>
+        <select id="tag-select" @onchange="FilterByTag">
+            <option value="">Select a Tag</option>
+            @foreach (var tag in tags)
+            {
+                <option value="@tag">@tag</option>
+            }
+        </select>
+    </div>
+
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Title</th>
+                <th>Amount</th>
+                <th>Date</th>
+                <th>Type</th>
+                <th>Tags</th>
+                <th>Remarks</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (filteredTransactions != null && filteredTransactions.Count > 0)
+            {
+                @foreach (var transaction in filteredTransactions)
+                {
+                    <tr>
+                        <td>@transaction.transactiontitle</td>
+                        <td>@transaction.transactionamount.ToString("C")</td>
+                        <td>@transaction.transactiondate.ToShortDateString()</td>
+                        <td>@transaction.transactiontype</td>
+                        <td>@(string.IsNullOrWhiteSpace(transaction.transactiontags) ? "N/A" : transaction.transactiontags)</td>
+                        <td>@(string.IsNullOrWhiteSpace(transaction.transactionremarks) ? "N/A" : transaction.transactionremarks)</td>
+                    </tr>
+                }
+            }
+            else
+            {
+                <tr>
+                    <td colspan="6" class="text-center">No transactions available to display.</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<Transaction> userTransactions = new();
+    private List<Transaction> filteredTransactions = new();
+    private string selectedType = "";
+    private string selectedTag = "";
+    private DateTime startDate = DateTime.Today.AddMonths(-1);
+    private DateTime endDate = DateTime.Today;
+    private float totalTransactions = 0;
+    private bool alertVisible = true;
+    private List<string> tags = new();
+    private string searchTitle = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (authStateService.IsAuthenticated())
+        {
+            await LoadTransactions();
+            await LoadTags();
+        }
+        else
+        {
+            navigationManager.NavigateTo("/login");
+        }
+    }
+
+    private async Task LoadTransactions()
+    {
+        var currentUser = authStateService.GetAuthenticatedUser();
+        userTransactions = TransactionService.GetTransactionsByUserId(currentUser.UserId)
+                                             .OrderByDescending(t => t.transactiondate)
+                                             .ToList();
+
+        filteredTransactions = new List<Transaction>(userTransactions);
+        CalculateTotalTransactions();
+    }
+
+    private async Task LoadTags()
+    {
+        var currentUser = authStateService.GetAuthenticatedUser();
+        tags = tagsService.GetCustomTags(currentUser.UserId);
+    }
+
+    private void SortTransactionsByCriteria(ChangeEventArgs e)
+    {
+        var sortBy = e.Value?.ToString();
+
+        if (sortBy == "date")
+        {
+            filteredTransactions = filteredTransactions.OrderByDescending(t => t.transactiondate).ToList();
+        }
+        else if (sortBy == "amount")
+        {
+            filteredTransactions = filteredTransactions.OrderByDescending(t => t.transactionamount).ToList();
+        }
+
+        CalculateTotalTransactions();
+    }
+
+    private async Task FilterByDate()
+    {
+        var currentUser = authStateService.GetAuthenticatedUser();
+        filteredTransactions = TransactionService.FilterTransactionsByDate(startDate, endDate)
+                                                  .Where(t => t.UserId == currentUser.UserId)
+                                                  .ToList();
+
+        ApplyFilters();
+        CalculateTotalTransactions();
+    }
+
+    private void FilterByType(ChangeEventArgs e)
+    {
+        selectedType = e.Value?.ToString();
+        ApplyFilters();
+    }
+
+    private void FilterByTag(ChangeEventArgs e)
+    {
+        selectedTag = e.Value?.ToString();
+        ApplyFilters();
+    }
+
+    private void ApplyFilters()
+    {
+        var currentUser = authStateService.GetAuthenticatedUser();
+
+        filteredTransactions = userTransactions.Where(t => t.UserId == currentUser.UserId)
+                                                .Where(t => string.IsNullOrEmpty(selectedType) || t.transactiontype == selectedType)
+                                                .Where(t => string.IsNullOrEmpty(selectedTag) || t.transactiontags.Contains(selectedTag))
+                                                .Where(t => string.IsNullOrEmpty(searchTitle) || t.transactiontitle.Contains(searchTitle, StringComparison.OrdinalIgnoreCase))
+                                                .ToList();
+
+        CalculateTotalTransactions();
+    }
+
+    private void CalculateTotalTransactions()
+    {
+        totalTransactions = filteredTransactions
+            .Where(t => t.transactiontype == "Credit")
+            .Sum(t => t.transactionamount)
+            + filteredTransactions
+            .Where(t => t.transactiontype == "Debt")
+            .Sum(t => t.transactionamount)
+            - filteredTransactions
+            .Where(t => t.transactiontype == "Debit")
+            .Sum(t => t.transactionamount);
+    }
+
+    private async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await Task.Delay(5000);
+            CloseMe();
+        }
+    }
+
+    private void CloseMe()
+    {
+        alertVisible = false;
+        StateHasChanged();
+        navigationManager.NavigateTo(navigationManager.Uri, true);
+    }
+
+    private void OnSearchChanged(ChangeEventArgs e)
+    {
+        searchTitle = e.Value?.ToString() ?? "";
+        ApplyFilters();
+    }
+}

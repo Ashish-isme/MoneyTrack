@@ -12,7 +12,7 @@ namespace MoneyTrack.Services
 
         public TagService()
         {
-            LoadCustomTags(); 
+            LoadCustomTags();
         }
 
         // Get all custom tags for a specific user
@@ -76,7 +76,7 @@ namespace MoneyTrack.Services
             try
             {
                 var json = JsonSerializer.Serialize(userCustomTags, new JsonSerializerOptions { WriteIndented = true });
-                File.WriteAllText(customTagsFilePath, json);   
+                File.WriteAllText(customTagsFilePath, json);
             }
             catch (Exception ex)
             {

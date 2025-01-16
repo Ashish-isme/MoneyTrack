@@ -1,49 +1,103 @@
-﻿<div class="top-row ps-3 navbar navbar-dark">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="">MoneyTrack</a>
-    </div>
-</div>
+﻿@inject MoneyTrack.Services.AuthenticationStateService AuthenticationStateService
+@inject NavigationManager Navigation
 
-<input type="checkbox" title="Navigation menu" class="navbar-toggler" />
+@if (AuthenticationStateService.IsAuthenticated())
+{
+    <MudPaper Width="250px" Elevation="0" Style="min-height: 100vh; display: flex; flex-direction: column; border-right: 1px solid #ddd; background-color: #fdfefe ;">
+        <div class="logo-container">
+            <img src="./logo.svg" alt="MoneyTrack Logo" class="logo-image" />
+        </div>
 
-<div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
-    <nav class="flex-column">
-         <div class="nav-item px-3">
-            <NavLink class="nav-link" href="/dashboard" Match="NavLinkMatch.All">
-                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
-            </NavLink>
-        </div> 
-      @*   <div class="nav-item px-3">
-            <NavLink class="nav-link" href="/register">
-                <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Add User
-            </NavLink>
-        </div> *@
-       @*  <div class="nav-item px-3">
-            <NavLink class="nav-link" href="/" Match="NavLinkMatch.All">
-                <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Login
-            </NavLink>
-        </div> *@
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="/add-credit" Match="NavLinkMatch.All">
-                <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Add Balance
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="/add-expense" Match="NavLinkMatch.All">
-                <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Add Expense
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="/add-debt" Match="NavLinkMatch.All">
-                <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Take Debt
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="/transactions" Match="NavLinkMatch.All">
-                <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Transactions
-            </NavLink>
-        </div>
-        
+        <MudNavMenu Rounded="true" Margin="Margin.Dense" Color="Color.Primary" Class="pa-2 flex-grow-1 menu-with-border">
+            <MudNavLink Href="/dashboard" Icon="@Icons.Material.Filled.Dashboard" Match="NavLinkMatch.All" Class="nav-link">
+                Home
+            </MudNavLink>
+            <MudNavLink Href="/transactions" Icon="@Icons.Material.Filled.WatchLater" Match="NavLinkMatch.All" Class="nav-link">
+                Recent Transactions
+            </MudNavLink>
+            <MudNavLink Href="/add-credit" Icon="@Icons.Material.Filled.AddCircle" Match="NavLinkMatch.All" Class="nav-link">
+                Add Balance
+            </MudNavLink>
+            <MudNavLink Href="/add-expense" Icon="@Icons.Material.Filled.Receipt" Match="NavLinkMatch.All" Class="nav-link">
+                Add Expense
+            </MudNavLink>
+            <MudNavLink Href="/add-debt" Icon="@Icons.Material.Filled.AccountBalanceWallet" Match="NavLinkMatch.All" Class="nav-link take-debt-link">
+                Take Debt
+            </MudNavLink>
+            <MudNavLink OnClick="Logout" Icon="@Icons.Material.Filled.ExitToApp" Color="Color.Error" Class="logout-link">
+                Logout
+            </MudNavLink>
+        </MudNavMenu>
 
-    </nav>
-</div>
+    </MudPaper>
+}
+
+
+<style>
+    .logo-container {
+        text-align: center;
+        margin: 20px 0;
+    }
+
+    .logo-image {
+        width: 100%;
+        max-width: 150px;
+        height: auto;
+    }
+
+    .menu-with-border {
+        border-top: 1px solid #ddd;
+    }
+
+    .nav-link {
+        transition: background-color 0.3s ease, color 0.3s ease;
+        color: #1d1e1f;
+    }
+
+        .nav-link:hover {
+            background-color: rgba(213, 245, 227);
+            color: #52be80;
+        }
+
+    .take-debt-link:hover {
+        background-color: rgba(255, 0, 0, 0.1);
+        color: #f44336;
+    }
+
+    .nav-link.MudActive {
+        background-color: rgba(0, 123, 255, 0.3) !important;
+        color: #ffffff;
+        border-radius: 4px;
+    }
+
+        .nav-link.MudActive:hover {
+            background-color: rgba(0, 123, 255, 0.5);
+            color: #ffffff;
+        }
+
+    .logout-link {
+        color: #f44336;
+        margin-top: auto;
+        transition: background-color 0.3s ease;
+    }
+
+        .logout-link:hover {
+            background-color: rgba(244, 67, 54, 0.1);
+        }
+
+    /* Ensuring the main content takes the full height of the page */
+    .main-content {
+        margin-left: 250px; /* Add space to the left for the navbar */
+        padding: 20px;
+        height: 100vh;
+        overflow-y: auto; /* Allow scrolling if content exceeds viewport height */
+    }
+</style>
+
+@code {
+    private void Logout()
+    {
+        AuthenticationStateService.Logout();
+        Navigation.NavigateTo("/", true);
+    }
+}

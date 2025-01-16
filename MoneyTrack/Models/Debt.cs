@@ -20,4 +20,3 @@ namespace MoneyTrack.Models
         public string Debtremarks { get; set; }
     }
 }
-

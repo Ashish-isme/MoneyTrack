@@ -36,7 +36,7 @@ namespace MoneyTrack.Services
             {
                 UserId = debt.UserId,
                 transactiontitle = "Debt Added",
-                transactionamount = (decimal)debt.Debtamount,
+                transactionamount = (float)debt.Debtamount,
                 transactiondate = DateTime.Now,
                 transactiontype = "Debt", // Specify the type of transaction
                 transactiontags = debt.Debttags, // Optional
@@ -92,7 +92,7 @@ namespace MoneyTrack.Services
                 {
                     UserId = debtToPay.UserId,
                     transactiontitle = "Debt Payment",
-                    transactionamount = (decimal)paymentAmount,
+                    transactionamount = (float)paymentAmount,
                     transactiondate = DateTime.Now,
                     transactiontype = "Debt Payment", // Specify the type of transaction
                     transactiontags = debtToPay.Debttags, // Optional

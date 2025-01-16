@@ -30,10 +30,14 @@ namespace MoneyTrack
             builder.Services.AddSingleton<ICreditService, CreditService>();
             builder.Services.AddSingleton<IExpenseService, ExpenseService>();
 
+            builder.Services.AddMudServices();
+
+
+
 
 
 #if DEBUG
-            
+
             builder.Logging.AddDebug();
 #endif
 

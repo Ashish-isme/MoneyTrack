@@ -39,8 +39,8 @@ namespace MoneyTrack.Services
             var transaction = new Transaction
             {
                 UserId = credit.UserId,
-                transactiontitle = "Credit Added",
-                transactionamount = (decimal)credit.Creditamount,
+                transactiontitle = credit.Credittitle,
+                transactionamount = (float)credit.Creditamount,
                 transactiondate = DateTime.Now,
                 transactiontype = "Credit", // Specify the type of transaction
                 transactiontags = credit.Credittags, // Optional

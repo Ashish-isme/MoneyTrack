@@ -7,15 +7,13 @@
 <div class="page">
     @if (authStateService.IsAuthenticated())
     {
-        <div class="sidebar">
             <NavMenu />
-        </div>
+   
     }
 
 
     <main>
        
-
         <article class="content px-4">
             @Body
         </article>

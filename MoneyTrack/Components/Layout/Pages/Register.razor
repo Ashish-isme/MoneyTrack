@@ -88,7 +88,7 @@
 </section>
 
 @code {
-    private User newUser = new User();
+    private User newUser = new User(); 
     private string errorMessage;
 
     private async Task AddNewUser()
@@ -96,11 +96,13 @@
         try
         {
             var existingUsers = await userService.LoadUsersAsync();
-            newUser.UserId = existingUsers.Max(u => u.UserId) + 1;
 
-            if (existingUsers.Any(u => u.UserId == newUser.UserId))
+            // Assign UserId based on the existing users
+            newUser.UserId = existingUsers.Any() ? existingUsers.Max(u => u.UserId) + 1 : 1;
+
+            if (existingUsers.Any(u => u.UserName.Equals(newUser.UserName, StringComparison.OrdinalIgnoreCase)))
             {
-                errorMessage = "User ID already exists.";
+                errorMessage = "Username already exists.";
                 return;
             }
 

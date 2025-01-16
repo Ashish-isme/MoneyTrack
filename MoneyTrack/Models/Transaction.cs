@@ -11,7 +11,7 @@ namespace MoneyTrack.Models
    
         public int UserId { get; set; }
         public string transactiontitle { get; set; }
-        public decimal transactionamount { get; set; }
+        public float transactionamount { get; set; }
         public DateTime transactiondate { get; set; }
         public string transactiontype { get; set; }  // This for type "Credit", "Debt", or "Expense"
         public string transactiontags { get; set; }

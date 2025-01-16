@@ -6,54 +6,59 @@
 @inject BalanceService balanceService
 @inject NavigationManager navigationManager
 
-<h3>Debt Management</h3>
+<h3 class="text-center font-weight-bold pt-4" style="margin-top: 40px;">Debt Management</h3>
 
 @if (authStateService.IsAuthenticated())
 {
-    <div>
-        <h4>Welcome, @authStateService.GetAuthenticatedUser().User_Name!</h4>
-        <h5>Your Current Balance: @currentBalance.ToString("C")</h5>
-
-        <form>
-            <div>
-                <label for="debttitle">Debt Title:</label>
-                <input type="text" id="debttitle" @bind="newDebt.Debttitle" required />
-            </div>
-            <div>
-                <label for="debtamount">Amount:</label>
-                <input type="number" id="debtamount" @bind="newDebt.Debtamount" step="0.01" min="0" required />
-            </div>
-            <div>
-                <label for="debtdate">Debt Date:</label>
-                <input type="date" id="debtdate" @bind="newDebt.Debtdate" required />
-            </div>
-            <div>
-                <label>Tags:</label>
-                <select @bind="newDebt.Debttags" required>
-                    <option value="" disabled selected>Others</option>
-                    <option value="Bill Sharing">Bill Sharing</option>
-                    <option value="Family Expense">Family Expense</option>
-                    <option value="Lend/Borrow">Lend/Borrow</option>
-                    <option value="Personal Use">Personal Use</option>
-                </select>
-            </div>
-            <div>
-                <label for="debtremarks">Remarks:</label>
-                <textarea id="debtremarks" @bind="newDebt.Debtremarks"></textarea>
-            </div>
-            <button type="button" @onclick="AddDebt">Add Debt</button>
-        </form>
-
-        @if (!string.IsNullOrEmpty(errorMessage))
-        {
-            <p class="error-message">@errorMessage</p>
-        }
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h6 class="current-balance">Your Current Balance: @currentBalance.ToString("C")</h6>
     </div>
 
-    <h4>Your Debts</h4>
+    <form class="mt-3" style="max-width: 60%;">
+        <div class="mb-3">
+            <label for="debttitle" class="form-label">Debt Title:</label>
+            <input type="text" id="debttitle" class="form-control form-control-sm" @bind="newDebt.Debttitle" required />
+        </div>
+
+        <div class="d-flex justify-content-between gap-3">
+            <div class="mb-3 flex-grow-1">
+                <label for="debtamount" class="form-label">Amount:</label>
+                <input type="number" id="debtamount" class="form-control form-control-sm" @bind="newDebt.Debtamount" step="0.01" min="0" required />
+            </div>
+            <div class="mb-3 flex-grow-1">
+                <label for="debtdate" class="form-label">Debt Date:</label>
+                <input type="date" id="debtdate" class="form-control form-control-sm" @bind="newDebt.Debtdate" required />
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <label for="debttags" class="form-label">Tags:</label>
+            <select id="debttags" class="form-select form-select-sm" @bind="newDebt.Debttags" required>
+                <option value="" disabled selected>Others</option>
+                <option value="Bill Sharing">Bill Sharing</option>
+                <option value="Family Expense">Family Expense</option>
+                <option value="Lend/Borrow">Lend/Borrow</option>
+                <option value="Personal Use">Personal Use</option>
+            </select>
+        </div>
+
+        <div class="mb-3">
+            <label for="debtremarks" class="form-label">Remarks (Optional):</label>
+            <textarea id="debtremarks" class="form-control form-control-sm" @bind="newDebt.Debtremarks"></textarea>
+        </div>
+
+        <button type="button" class="btn btn-outline-success btn-sm w-30 mt-3" @onclick="AddDebt">Add Debt</button>
+    </form>
+
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="alert alert-danger mt-3">@errorMessage</div>
+    }
+
+    <h4 class="mt-4">Your Debts</h4>
     @if (userDebts != null && userDebts.Count > 0)
     {
-        <table class="table">
+        <table class="table table-striped table-hover mt-3">
             <thead>
                 <tr>
                     <th>Title</th>
@@ -74,7 +79,7 @@
                         <td>@debt.Debttags</td>
                         <td>@debt.Debtremarks</td>
                         <td>
-                            <button class="btn btn-danger" @onclick="() => ClearDebt(debt.DebtId)">Clear Debt</button>
+                            <button class="btn btn-danger btn-sm" @onclick="() => ClearDebt(debt.DebtId)">Clear Debt</button>
                         </td>
                     </tr>
                 }
@@ -83,13 +88,49 @@
     }
     else
     {
-        <p>No debts found for @authStateService.GetAuthenticatedUser().User_Name</p>
+        <p class="mt-3">No debts found for @authStateService.GetAuthenticatedUser().User_Name</p>
     }
 }
 else
 {
-    navigationManager.NavigateTo("/"); // Redirect to the login page if not authenticated
+    navigationManager.NavigateTo("/");
 }
+
+<style>
+    .current-balance {
+        background-color: #28a745;
+        color: white;
+        padding: 10px 20px;
+        border-radius: 5px;
+        font-weight: normal;
+        margin-top: 20px;
+        margin-bottom: 20px;
+    }
+
+    .btn-outline-success {
+        border-color: #6c757d;
+        color: #6c757d;
+        font-size: 1rem;
+        padding: 10px 20px;
+        background-color: white;
+    }
+
+        .btn-outline-success:hover {
+            background-color: #28a745;
+            color: white;
+            border-color: #28a745;
+        }
+
+    .form-control, .form-control-sm, .form-select {
+        font-size: 0.85rem;
+        padding: 8px;
+        height: 38px;
+    }
+
+    .table {
+        margin-top: 20px;
+    }
+</style>
 
 @code {
     private List<Debt> userDebts = new();
@@ -153,7 +194,6 @@ else
         {
             try
             {
-                // Pass the full debt amount as the paymentAmount
                 await debtService.PayDebtAsync(debtId, debtToClear.Debtamount);
                 await LoadUserDebts();
                 await LoadBalance();

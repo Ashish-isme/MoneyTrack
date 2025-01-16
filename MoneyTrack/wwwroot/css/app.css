@@ -208,4 +208,52 @@ h1:focus {
         color: #fff;
     }
 
+    body {
+        background-color: #f8f9fa;
+        color: #212529;
 
+    }
+
+    
+    
+
+    /* Button customization */
+    .btn-success {
+        background-color: #28a745;
+        border-color: #28a745;
+        font-size: 1rem; /* Slightly larger font */
+        padding: 10px 20px; /* Bigger button */
+    }
+
+        .btn-success:hover {
+            background-color: #218838; /* Darker green on hover */
+            border-color: #1e7e34;
+        }
+
+    .form-label {
+        font-weight: bold;
+        font-size: 0.8rem;
+    }
+
+    /* Adjust input field sizes */
+    .form-control, .form-control-sm, .form-select {
+        font-size: 0.7rem;
+        padding: 4px 10px; /* Adjusted padding */
+        height: 32px; /* Adjusted height */
+    }
+
+    /* Table styles */
+    .table {
+        width: 100%;
+        margin-top: 20px;
+    }
+
+        .table th, .table td {
+            padding: 6px;
+            text-align: left;
+            border: 1px solid #ccc;
+        }
+
+    .table-bordered {
+        border: 1px solid #ccc;
+    }

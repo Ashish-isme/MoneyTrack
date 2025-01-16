@@ -46,8 +46,8 @@ namespace MoneyTrack.Services
             var transaction = new Transaction
             {
                 UserId = expense.UserId,
-                transactiontitle = "Expense Deducted",
-                transactionamount = (decimal)expense.Expenseamount,
+                transactiontitle = expense.Expensetitle,
+                transactionamount = (float)expense.Expenseamount,
                 transactiondate = DateTime.Now,
                 transactiontype = "Expense", // Specify the type of transaction
                 transactiontags = expense.Expensetags, // Optional
