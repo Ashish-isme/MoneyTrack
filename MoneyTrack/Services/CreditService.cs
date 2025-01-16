@@ -34,6 +34,7 @@ namespace MoneyTrack.Services
 
             // Update user's balance
             balanceService.AddCreditToBalance(credit.UserId, credit.Creditamount);
+            balanceService.AddCredit(credit.UserId, credit.Creditamount);
 
             // Create and add a corresponding transaction
             var transaction = new Transaction

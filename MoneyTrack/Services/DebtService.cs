@@ -69,13 +69,24 @@ namespace MoneyTrack.Services
 
             if (debtToPay != null)
             {
+                // Check if the payment amount exceeds the debt amount
                 if (paymentAmount > debtToPay.Debtamount)
                 {
                     throw new InvalidOperationException("Payment amount exceeds the debt amount.");
                 }
 
-                // Deduct the payment amount from the user's balance
-                balanceService.DeductFromBalance(debtToPay.UserId, paymentAmount);
+                // Get the user's current credit balance from BalanceService
+                float userCreditBalance = balanceService.GetCreditBalance(debtToPay.UserId);
+
+                // Check if the user has enough credit balance
+                if (paymentAmount > userCreditBalance)
+                {
+                    throw new InvalidOperationException("Insufficient Cre balance to pay the debt. Debts cant be cleared with debts");
+                }
+
+                // Proceed with the payment: Deduct from user's balance and credit balance
+                balanceService.DeductFromBalance(debtToPay.UserId, paymentAmount); // Deduct from user's balance
+                balanceService.DeductCredit(debtToPay.UserId, paymentAmount); // Deduct from user's credit balance
 
                 // Reduce the debt amount or remove it if fully paid
                 debtToPay.Debtamount -= paymentAmount;
@@ -85,14 +96,14 @@ namespace MoneyTrack.Services
                     debts.Remove(debtToPay); // Fully paid, remove the debt
                 }
 
-                await SaveDebtsAsync(debts);
+                await SaveDebtsAsync(debts); // Save the updated debts list
 
                 // Create and add a transaction for the debt payment
                 var transaction = new Transaction
                 {
                     UserId = debtToPay.UserId,
                     transactiontitle = "Debt Payment",
-                    transactionamount = (float)paymentAmount,
+                    transactionamount = paymentAmount,
                     transactiondate = DateTime.Now,
                     transactiontype = "Debt Payment", // Specify the type of transaction
                     transactiontags = debtToPay.Debttags, // Optional
@@ -100,13 +111,14 @@ namespace MoneyTrack.Services
                 };
 
                 // Add the transaction using the ITransactionService
-                transactionService.AddTransaction(transaction);
+                transactionService.AddTransaction(transaction); // Assuming you have the AddTransaction method defined in ITransactionService
             }
             else
             {
                 Console.WriteLine($"Debt with ID {debtId} not found.");
             }
         }
+
 
         // Load debts from the JSON file
         private async Task<List<Debt>> LoadDebtsAsync()

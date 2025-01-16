@@ -41,6 +41,7 @@ namespace MoneyTrack.Services
 
             // Deduct the expense amount from the balance
             balanceService.DeductFromBalance(expense.UserId, expense.Expenseamount);
+            balanceService.DeductCredit(expense.UserId, expense.Expenseamount);
 
             // Create and add a corresponding transaction for the expense
             var transaction = new Transaction
@@ -55,7 +56,7 @@ namespace MoneyTrack.Services
             };
 
             // Add the transaction using the ITransactionService
-             transactionService.AddTransaction(transaction);
+            transactionService.AddTransaction(transaction);
         }
 
         public async Task<List<Expense>> GetExpensesByUserIdAsync(int userId)
