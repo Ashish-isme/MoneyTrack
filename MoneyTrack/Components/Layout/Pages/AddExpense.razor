@@ -4,6 +4,7 @@
 @inject AuthenticationStateService authStateService
 @inject IExpenseService expenseService
 @inject BalanceService balanceService
+@inject TagService tagService
 @inject NavigationManager navigationManager
 
 <h3 class="text-center font-weight-bold pt-4" style="margin-top: 40px;">Expense Management</h3>
@@ -33,13 +34,15 @@
 
         <div class="mb-3">
             <label for="expenseTags" class="form-label">Tags:</label>
-            <select id="expenseTags" class="form-select form-select-sm" @bind="newExpense.Expensetags" required>
-                <option value="" disabled selected>Others</option>
-                <option value="Bill Sharing">Bill Sharing</option>
-                <option value="Family Expense">Family Expense</option>
-                <option value="Lend/Borrow">Lend/Borrow</option>
-                <option value="Personal Use">Personal Use</option>
-            </select>
+            <input list="tagsList" id="expenseTags" class="form-control form-control-sm" @bind="newExpense.Expensetags" placeholder="Enter a tag or select from existing" />
+
+            <!-- Datalist to show the existing tags as suggestions -->
+            <datalist id="tagsList">
+                @foreach (var tag in availableTags)
+                {
+                    <option value="@tag"></option>
+                }
+            </datalist>
         </div>
 
         <div class="mb-3">
@@ -47,7 +50,7 @@
             <textarea id="expenseRemarks" class="form-control form-control-sm" @bind="newExpense.Expenseremarks"></textarea>
         </div>
 
-        <button type="button" class="btn btn-outline-success btn-sm w-30 mt-3" @onclick="Add_Expense">Add Expense</button>
+        <button type="button" class="btn btn-outline-danger btn-sm w-30 mt-3" @onclick="Add_Expense">Add Expense</button>
     </form>
 
     @if (!string.IsNullOrEmpty(errorMessage))
@@ -69,11 +72,13 @@ else
     private string errorMessage;
     private string successMessage;
     private float currentBalance = 0;
+    private List<string> availableTags = new() { "Bill Sharing", "Family Expense", "Income/Loan", "Personal Use" };
 
     protected override async Task OnInitializedAsync()
     {
         newExpense.Expensedate = DateTime.Today;
         await LoadBalance();
+        await LoadCustomTags();
     }
 
     private async Task LoadBalance()
@@ -85,12 +90,28 @@ else
         }
     }
 
+    private async Task LoadCustomTags()
+    {
+        var user = authStateService.GetAuthenticatedUser();
+        if (user != null)
+        {
+            var customTags = tagService.GetCustomTags(user.UserId);
+            availableTags.AddRange(customTags);
+        }
+    }
+
     private async Task Add_Expense()
     {
         var user = authStateService.GetAuthenticatedUser();
         if (user != null)
         {
             newExpense.UserId = user.UserId;
+
+            if (!string.IsNullOrWhiteSpace(newExpense.Expensetags) && !availableTags.Contains(newExpense.Expensetags))
+            {
+                tagService.AddCustomTag(user.UserId, newExpense.Expensetags);
+                availableTags.Add(newExpense.Expensetags);
+            }
 
             try
             {
@@ -115,7 +136,7 @@ else
 
 <style>
     .current-balance {
-        background-color: #28a745;
+        background-color: #dc3545;
         color: white;
         padding: 10px 20px;
         border-radius: 5px;
@@ -124,7 +145,7 @@ else
         margin-bottom: 20px;
     }
 
-    .btn-outline-success {
+    .btn-outline-danger {
         border-color: #6c757d;
         color: #6c757d;
         font-size: 1rem;
@@ -132,10 +153,10 @@ else
         background-color: white;
     }
 
-        .btn-outline-success:hover {
-            background-color: #28a745;
+        .btn-outline-danger:hover {
+            background-color: #dc3545;
             color: white;
-            border-color: #28a745;
+            border-color: #dc3545;
         }
 
     .form-control, .form-control-sm, .form-select {

@@ -6,12 +6,14 @@
         private readonly string creditBalanceFilePath = Path.Combine(AppContext.BaseDirectory, "user_credit_balances.json");
 
         private Dictionary<int, float> userBalances = new();
-        private Dictionary<int, float> userCreditBalances = new();  // New dictionary for credit balances
+        private Dictionary<int, float> userCreditBalances = new();
+        private Dictionary<int, float> userClearDebts = new(); // New dictionary for credit balances
 
         public BalanceService()
         {
             LoadBalances(); // Load balances when the service is initialized
             LoadCreditBalances(); // Load credit balances
+           
         }
 
         // Balance methods (existing)

@@ -4,6 +4,7 @@
 @inject AuthenticationStateService authStateService
 @inject IDebtService debtService
 @inject BalanceService balanceService
+@inject TagService tagService
 @inject NavigationManager navigationManager
 
 <h3 class="text-center font-weight-bold pt-4" style="margin-top: 40px;">Debt Management</h3>
@@ -16,6 +17,7 @@
     </div>
 
     <form class="mt-3" style="max-width: 60%;">
+
         <div class="mb-3">
             <label for="debttitle" class="form-label">Debt Title:</label>
             <input type="text" id="debttitle" class="form-control form-control-sm" @bind="newDebt.Debttitle" required />
@@ -34,13 +36,17 @@
 
         <div class="mb-3">
             <label for="debttags" class="form-label">Tags:</label>
-            <select id="debttags" class="form-select form-select-sm" @bind="newDebt.Debttags" required>
-                <option value="" disabled selected>Others</option>
-                <option value="Bill Sharing">Bill Sharing</option>
-                <option value="Family Expense">Family Expense</option>
-                <option value="Lend/Borrow">Lend/Borrow</option>
-                <option value="Personal Use">Personal Use</option>
-            </select>
+
+            <!-- Input field for tags with datalist for existing tags -->
+            <input list="tagsList" id="debttags" class="form-control form-control-sm" @bind="newDebt.Debttags" placeholder="Enter a tag or select from existing" />
+
+            <!-- Datalist to show the existing tags as suggestions -->
+            <datalist id="tagsList">
+                @foreach (var tag in availableTags)
+                {
+                    <option value="@tag"></option>
+                }
+            </datalist>
         </div>
 
         <div class="mb-3">
@@ -94,7 +100,7 @@
 }
 else
 {
-    navigationManager.NavigateTo("/");
+    navigationManager.NavigateTo("/"); // Redirect to login page if not authenticated
 }
 
 <style>
@@ -139,12 +145,15 @@ else
     private string errorMessage;
     private float currentBalance = 0;
     private float creditBalance = 0;
+    private List<string> availableTags = new(); // List to hold existing tags from TagService
+    private float clearedDebts = 0;
 
     protected override async Task OnInitializedAsync()
     {
         newDebt.Debtdate = DateTime.Today;
         await LoadUserDebts();
         await LoadBalance();
+        await LoadAvailableTags();
     }
 
     private async Task LoadUserDebts()
@@ -166,6 +175,16 @@ else
         }
     }
 
+    private async Task LoadAvailableTags()
+    {
+        var user = authStateService.GetAuthenticatedUser();
+        if (user != null)
+        {
+            // Fetch existing tags for the authenticated user from TagService
+            availableTags = tagService.GetCustomTags(user.UserId);
+        }
+    }
+
     private async Task AddDebt()
     {
         var user = authStateService.GetAuthenticatedUser();
@@ -173,11 +192,16 @@ else
         {
             newDebt.UserId = user.UserId;
 
+            // If the user typed a custom tag and it's not already in the available tags list, add it
+            if (!string.IsNullOrWhiteSpace(newDebt.Debttags) && !availableTags.Contains(newDebt.Debttags))
+            {
+                tagService.AddCustomTag(user.UserId, newDebt.Debttags);
+                availableTags.Add(newDebt.Debttags); // Add the new custom tag to the available tags list
+            }
+
             try
             {
                 await debtService.AddDebtAsync(newDebt);
-                await LoadUserDebts();
-                await LoadBalance();
                 newDebt = new Debt { Debtdate = DateTime.Today };
                 errorMessage = null;
             }
@@ -200,6 +224,8 @@ else
                 await debtService.PayDebtAsync(debtId, debtToClear.Debtamount);
                 await LoadUserDebts();
                 await LoadBalance();
+
+               
             }
             catch (Exception ex)
             {
@@ -212,4 +238,12 @@ else
             errorMessage = $"Debt with ID {debtId} not found.";
         }
     }
+
+    public float GetTotalClearedDebt()
+    {
+        return  clearedDebts;
+    }
+
+
+
 }

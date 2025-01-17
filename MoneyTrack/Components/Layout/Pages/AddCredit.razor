@@ -16,6 +16,7 @@
     </div>
 
     <form class="mt-3" style="max-width: 60%;">
+
         <div class="mb-3">
             <label for="creditTitle" class="form-label">Credit Title:</label>
             <input type="text" id="creditTitle" class="form-control form-control-sm" @bind="newCredit.Credittitle" required />
@@ -34,13 +35,17 @@
 
         <div class="mb-3">
             <label for="creditTags" class="form-label">Tags:</label>
-            <select id="creditTags" class="form-select form-select-sm" @bind="newCredit.Credittags" required>
-                <option value="" disabled selected>Others</option>
+
+            <!-- Input field for tags with datalist for existing tags -->
+            <input list="tagsList" id="creditTags" class="form-control form-control-sm" @bind="newCredit.Credittags" placeholder="Enter a tag or select from existing" />
+
+            <!-- Datalist to show the existing tags as suggestions -->
+            <datalist id="tagsList">
                 @foreach (var tag in availableTags)
                 {
-                    <option value="@tag">@tag</option>
+                    <option value="@tag"></option>
                 }
-            </select>
+            </datalist>
         </div>
 
         <div class="mb-3">
@@ -62,7 +67,7 @@
 }
 else
 {
-    navigationManager.NavigateTo("/");
+    navigationManager.NavigateTo("/"); // Redirect to login page if not authenticated
 }
 
 @code {
@@ -70,13 +75,13 @@ else
     private string errorMessage;
     private string successMessage;
     private float currentBalance = 0;
-    private List<string> availableTags = new() { "Bill Sharing", "Family Expense", "Income/Loan", "Personal Use" };
+    private List<string> availableTags = new(); // List to hold existing tags from TagService
 
     protected override async Task OnInitializedAsync()
     {
         newCredit.Creditdate = DateTime.Today;
         await LoadBalance();
-        await LoadCustomTags();
+        await LoadAvailableTags();
     }
 
     private async Task LoadBalance()
@@ -88,13 +93,13 @@ else
         }
     }
 
-    private async Task LoadCustomTags()
+    private async Task LoadAvailableTags()
     {
         var user = authStateService.GetAuthenticatedUser();
         if (user != null)
         {
-            var customTags = tagService.GetCustomTags(user.UserId);
-            availableTags.AddRange(customTags);
+            // Fetch existing tags for the authenticated user from TagService
+            availableTags = tagService.GetCustomTags(user.UserId);
         }
     }
 
@@ -105,10 +110,11 @@ else
         {
             newCredit.UserId = user.UserId;
 
+            // If the user typed a custom tag and it's not already in the available tags list, add it
             if (!string.IsNullOrWhiteSpace(newCredit.Credittags) && !availableTags.Contains(newCredit.Credittags))
             {
                 tagService.AddCustomTag(user.UserId, newCredit.Credittags);
-                availableTags.Add(newCredit.Credittags);
+                availableTags.Add(newCredit.Credittags); // Add the new custom tag to the available tags list
             }
 
             try
@@ -161,5 +167,9 @@ else
         font-size: 0.85rem;
         padding: 8px;
         height: 38px;
+    }
+
+    .list-group-item-action {
+        cursor: pointer;
     }
 </style>

@@ -7,7 +7,7 @@
 @inject NavigationManager navigationManager
 @inject TagService tagsService
 
-<h3>Transaction History</h3>
+<h3 class="text-center font-weight-bold pt-4" style="margin-top: 40px;">Transaction History Management</h3>
 
 @if (!authStateService.IsAuthenticated())
 {
@@ -17,10 +17,11 @@
 else
 {
     var currentUser = authStateService.GetAuthenticatedUser();
+
     <div>
         <h4>Welcome, @currentUser.User_Name</h4>
-        <p>Total Transactions: @totalTransactions.ToString("C")</p>
-        <p>Total Number of Transactions: @filteredTransactions.Count</p>
+        <p style="color: cadetblue">Total Transactions: @totalTransactions.ToString("C")</p>
+        <p style="color: cadetblue">Total Number of Transactions: @filteredTransactions.Count</p>
     </div>
 
     @if (filteredTransactions == null || filteredTransactions.Count == 0)
@@ -30,48 +31,74 @@ else
         </MudAlert>
     }
 
-    <div>
-        <label for="search-title">Search by Title:</label>
-        <input type="text" id="search-title" @bind="searchTitle" @oninput="OnSearchChanged" placeholder="Enter title to search..." />
+    <!-- Search Bar -->
+    <div class="mb-3">
+        <label for="search-title" class="form-label">Search by Title:</label>
+        <div class="input-group">
+            <input type="text" id="search-title" class="form-control" @bind="searchTitle" @oninput="OnSearchChanged" placeholder="Enter title to search..." />
+        </div>
     </div>
 
-    <div>
-        <label for="sort-select">Sort By:</label>
-        <select id="sort-select" @onchange="SortTransactionsByCriteria">
-            <option value="date">Recent Date</option>
-            <option value="amount">Highest Amount</option>
-        </select>
+    <!-- Filter and Search Options -->
+    <div class="filter-container" style=" margin-top:40px;">
+        <div class="filter-group">
+            <label for="date-range">Filter by Date Range:</label>
+            <input type="date" @bind="startDate" /> to
+            <input type="date" @bind="endDate" />
+            <button @onclick="FilterByDate" class="btn btn-outline-success btn-sm w-10 mt-3" style="margin-top: 15px;">Apply</button>
+        </div>
+
+        <div class="filter-group">
+            <label for="tags-select">Filter by Type:</label>
+            <select id="tags-select" @onchange="FilterByType" class="form-control">
+                <option value="">Select a Type</option>
+                <option value="Credit">Credit</option>
+                <option value="Debit">Debit</option>
+                <option value="Debt">Debt</option>
+            </select>
+        </div>
+
+        <div class="filter-group">
+            <label for="tag-select">Filter by Tag:</label>
+            <select id="tag-select" @onchange="FilterByTag" class="form-control">
+                <option value="">Select a Tag</option>
+                @foreach (var tag in tags)
+                {
+                    <option value="@tag">@tag</option>
+                }
+            </select>
+        </div>
     </div>
 
-    <div>
-        <label for="date-range">Filter by Date Range:</label>
-        <input type="date" @bind="startDate" /> to
-        <input type="date" @bind="endDate" />
-        <button @onclick="FilterByDate">Apply</button>
-    </div>
-
-    <div>
-        <label for="tags-select">Filter by Type:</label>
-        <select id="tags-select" @onchange="FilterByType">
-            <option value="">Select a Type</option>
-            <option value="Credit">Credit</option>
-            <option value="Debit">Debit</option>
-            <option value="Debt">Debt</option>
-        </select>
-    </div>
-
-    <div>
-        <label for="tag-select">Filter by Tag:</label>
-        <select id="tag-select" @onchange="FilterByTag">
-            <option value="">Select a Tag</option>
-            @foreach (var tag in tags)
+    <!-- Sorting Options -->
+    <div class="sort-container">
+        <button @onclick="SortByAmount" class="btn btn-link btn-sm">
+            Amount
+            @if (isAmountAscending)
             {
-                <option value="@tag">@tag</option>
+                <i class="fa fa-arrow-up"></i>
             }
-        </select>
+            else
+            {
+                <i class="fa fa-arrow-down"></i>
+            }
+        </button>
+
+        <button @onclick="SortByDate" class="btn btn-link btn-sm">
+            Date
+            @if (isDateAscending)
+            {
+                <i class="fa fa-arrow-up"></i>
+            }
+            else
+            {
+                <i class="fa fa-arrow-down"></i>
+            }
+        </button>
     </div>
 
-    <table class="table">
+    <!-- Table -->
+    <table class="table table-striped">
         <thead>
             <tr>
                 <th>Title</th>
@@ -82,6 +109,7 @@ else
                 <th>Remarks</th>
             </tr>
         </thead>
+
         <tbody>
             @if (filteredTransactions != null && filteredTransactions.Count > 0)
             {
@@ -118,6 +146,8 @@ else
     private bool alertVisible = true;
     private List<string> tags = new();
     private string searchTitle = "";
+    private bool isAmountAscending = true;
+    private bool isDateAscending = true;
 
     protected override async Task OnInitializedAsync()
     {
@@ -149,20 +179,30 @@ else
         tags = tagsService.GetCustomTags(currentUser.UserId);
     }
 
-    private void SortTransactionsByCriteria(ChangeEventArgs e)
+    private void SortByAmount()
     {
-        var sortBy = e.Value?.ToString();
-
-        if (sortBy == "date")
-        {
-            filteredTransactions = filteredTransactions.OrderByDescending(t => t.transactiondate).ToList();
-        }
-        else if (sortBy == "amount")
+        if (isAmountAscending)
         {
             filteredTransactions = filteredTransactions.OrderByDescending(t => t.transactionamount).ToList();
         }
+        else
+        {
+            filteredTransactions = filteredTransactions.OrderBy(t => t.transactionamount).ToList();
+        }
+        isAmountAscending = !isAmountAscending;
+    }
 
-        CalculateTotalTransactions();
+    private void SortByDate()
+    {
+        if (isDateAscending)
+        {
+            filteredTransactions = filteredTransactions.OrderByDescending(t => t.transactiondate).ToList();
+        }
+        else
+        {
+            filteredTransactions = filteredTransactions.OrderBy(t => t.transactiondate).ToList();
+        }
+        isDateAscending = !isDateAscending;
     }
 
     private async Task FilterByDate()
@@ -236,3 +276,44 @@ else
         ApplyFilters();
     }
 }
+
+<style>
+    .filter-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 20px;
+        margin-bottom: 20px;
+    }
+
+    .filter-group {
+        flex: 1;
+        min-width: 250px;
+    }
+
+        .filter-group label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+    .sort-container {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        margin-bottom: 20px;
+    }
+
+    .btn-outline-success {
+        border-color: #6c757d;
+        color: #6c757d;
+        font-size: 0.7rem;
+        padding: 4px 8px;
+        background-color: white;
+    }
+
+        .btn-outline-success:hover {
+            background-color: #28a745;
+            color: white;
+            border-color: #28a745;
+        }
+</style>

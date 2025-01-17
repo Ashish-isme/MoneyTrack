@@ -12,145 +12,167 @@
 
 @if (user != null)
 {
-    <div class="welcome-message">
-        <h3>Hey @user.UserName, welcome to MoneyTrack!</h3>
-    </div>
-
-    <div class="dashboard-layout">
-        <span class="current-balance">Balance: @currentBalance.ToString("C")</span>
-
-        <div class="filters-section">
-            <input type="date" @bind="startDate" class="filter-input" />
-            <input type="date" @bind="endDate" class="filter-input" />
-            <button @onclick="ApplyDateFilter" class="btn btn-primary btn-sm">Filter</button>
+        <div class="welcome-message">
+            <h3>Hey @user.UserName, welcome to MoneyTrack!</h3>
         </div>
 
-        <!-- Summary Section with Graph beside Cards -->
-        <div class="summary-section">
+        <div class="dashboard-layout">
+            <span class="current-balance">Balance: @currentBalance.ToString("C")</span>
+
+            <div class="filters-section">
+                <input type="date" @bind="startDate" class="filter-input" />
+                <input type="date" @bind="endDate" class="filter-input" />
+                <button @onclick="ApplyDateFilter" class="btn btn-primary btn-sm">Filter</button>
+            </div>
+
+            <!-- Summary Section with Graph beside Cards -->
+            <div class="summary-section">
+                <div class="summary-cards">
+                    <MudCard Class="summary-card inflows-card">
+                        <MudCardContent>
+                            <h4>Total Inflow</h4>
+                            <p>@totalInflows.ToString("C")</p>
+                        </MudCardContent>
+                    </MudCard>
+
+                    <MudCard Class="summary-card outflows-card">
+                        <MudCardContent>
+                            <h4>Total Outflows</h4>
+                            <p>@totalOutflows.ToString("C")</p>
+                        </MudCardContent>
+                    </MudCard>
+
+                    <MudCard Class="summary-card debts-card">
+                        <MudCardContent>
+                            <h4>Total Debts</h4>
+                            <p>@totalDebts.ToString("C")</p>
+                        </MudCardContent>
+                    </MudCard>
+                </div>
+
+
             <div class="summary-cards">
                 <MudCard Class="summary-card inflows-card">
                     <MudCardContent>
-                        <h4>Total Inflows</h4>
-                        <p>@totalInflows.ToString("C")</p>
+                        <h4>Total Transaction</h4>
+                        <p>@totalTransaction.ToString("C")</p>
                     </MudCardContent>
                 </MudCard>
 
-                <MudCard Class="summary-card outflows-card">
+                @* <MudCard Class="summary-card outflows-card">
                     <MudCardContent>
-                        <h4>Total Outflows</h4>
-                        <p>@totalOutflows.ToString("C")</p>
+                        <h4>Cleared Debts</h4>
+                        <p></p>
                     </MudCardContent>
-                </MudCard>
+                </MudCard> *@
 
-                <MudCard Class="summary-card debts-card">
-                    <MudCardContent>
-                        <h4>Total Debts</h4>
-                        <p>@totalDebts.ToString("C")</p>
-                    </MudCardContent>
-                </MudCard>
+    
             </div>
 
-            <!-- Donut Chart Section -->
-            <div class="chart-section">
-                <MudChart ChartType="ChartType.Donut" Width="220px" Height="220px" InputData="@chartData" InputLabels="@chartLabels">
-                </MudChart>
-            </div>
-        </div>
 
-        <h4>Pending Debts</h4>
+            
+
+                <!-- Donut Chart Section -->
+                <div class="chart-section">
+                    <MudChart ChartType="ChartType.Donut" Width="220px" Height="220px" InputData="@chartData" InputLabels="@chartLabels">
+                    </MudChart>
+                </div>
+            </div>
+
+            <h4>Pending Debts</h4>
         @if (filteredPendingDebts != null && filteredPendingDebts.Count > 0)
         {
-            <table class="table table-striped table-sm">
-                <thead>
-                    <tr>
-                        <th>Title</th>
-                        <th>Amount</th>
-                        <th>Due Date</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody>
+                    <table class="table table-striped table-sm">
+                        <thead>
+                            <tr>
+                                <th>Title</th>
+                                <th>Amount</th>
+                                <th>Due Date</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
                     @foreach (var debt in filteredPendingDebts)
                     {
-                        <tr>
-                            <td>@debt.Debttitle</td>
-                            <td>@debt.Debtamount.ToString("C")</td>
-                            <td>@debt.Debtdate.ToShortDateString()</td>
-                            <td>@(debt.Debtamount > 0 ? "Pending" : "Paid")</td>
-                        </tr>
+                                    <tr>
+                                        <td>@debt.Debttitle</td>
+                                        <td>@debt.Debtamount.ToString("C")</td>
+                                        <td>@debt.Debtdate.ToShortDateString()</td>
+                                        <td>@(debt.Debtamount > 0 ? "Pending" : "Paid")</td>
+                                    </tr>
                     }
-                </tbody>
-            </table>
+                        </tbody>
+                    </table>
         }
         else
         {
-            <p>No pending debts.</p>
+                    <p>No pending debts.</p>
         }
 
-        <h4>Recent Transactions</h4>
+            <h4>Recent Transactions</h4>
         @if (filteredRecentTransactions != null && filteredRecentTransactions.Count > 0)
         {
-            <table class="table table-striped table-sm">
-                <thead>
-                    <tr>
-                        <th>Title</th>
-                        <th>
-                            Amount
-                            <button @onclick="SortByAmount" class="btn btn-link btn-sm">
+                    <table class="table table-striped table-sm">
+                        <thead>
+                            <tr>
+                                <th>Title</th>
+                                <th>
+                                    Amount
+                                    <button @onclick="SortByAmount" class="btn btn-link btn-sm">
                                 @if (isAmountAscending)
                                 {
-                                    <i class="fa fa-arrow-up"></i>
+                                                <i class="fa fa-arrow-up"></i>
                                 }
                                 else
                                 {
-                                    <i class="fa fa-arrow-down"></i>
+                                                <i class="fa fa-arrow-down"></i>
                                 }
-                            </button>
-                        </th>
-                        <th>
-                            Date
-                            <button @onclick="SortByDate" class="btn btn-link btn-sm">
+                                    </button>
+                                </th>
+                                <th>
+                                    Date
+                                    <button @onclick="SortByDate" class="btn btn-link btn-sm">
                                 @if (isDateAscending)
                                 {
-                                    <i class="fa fa-arrow-up"></i>
+                                                <i class="fa fa-arrow-up"></i>
                                 }
                                 else
                                 {
-                                    <i class="fa fa-arrow-down"></i>
+                                                <i class="fa fa-arrow-down"></i>
                                 }
-                            </button>
-                        </th>
-                        <th>Type</th>
-                        <th>Tags</th>
-                        <th>Remarks</th>
-                    </tr>
-                </thead>
-                <tbody>
+                                    </button>
+                                </th>
+                                <th>Type</th>
+                                <th>Tags</th>
+                                <th>Remarks</th>
+                            </tr>
+                        </thead>
+                        <tbody>
                     @foreach (var transaction in filteredRecentTransactions.Take(5))
                     {
-                        <tr>
-                            <td>@transaction.transactiontitle</td>
-                            <td>@transaction.transactionamount.ToString("C")</td>
-                            <td>@transaction.transactiondate.ToShortDateString()</td>
-                            <td>@transaction.transactiontype</td>
-                            <td>@transaction.transactiontags</td>
-                            <td>@transaction.transactionremarks</td>
-                        </tr>
+                                    <tr>
+                                        <td>@transaction.transactiontitle</td>
+                                        <td>@transaction.transactionamount.ToString("C")</td>
+                                        <td>@transaction.transactiondate.ToShortDateString()</td>
+                                        <td>@transaction.transactiontype</td>
+                                        <td>@transaction.transactiontags</td>
+                                        <td>@transaction.transactionremarks</td>
+                                    </tr>
                     }
-                </tbody>
-            </table>
+                        </tbody>
+                    </table>
         }
         else
         {
-            <p>No recent transactions.</p>
+                    <p>No recent transactions.</p>
         }
-    </div>
+        </div>
 }
 else
 {
-    <div class="login-message">
-        <h4>Please log in to view your dashboard.</h4>
-    </div>
+        <div class="login-message">
+            <h4>Please log in to view your dashboard.</h4>
+        </div>
 }
 
 <style>
@@ -256,6 +278,7 @@ else
     private float totalInflows;
     private float totalOutflows;
     private float totalDebts;
+    private float totalTransaction = 0;
     private float currentBalance;
     private List<Debt> pendingDebts = new();
     private List<Transaction> recentTransactions = new();
@@ -265,6 +288,10 @@ else
     private bool isDateAscending = true;
     private DateTime? startDate = null;
     private DateTime? endDate = null;
+    private float totalClearedDebt = 0;
+
+    private TakeDebt? takeDebtComponent;
+   
 
     // Data for the Donut chart
     private double[] chartData = { 0, 0 }; // income and expense
@@ -288,12 +315,16 @@ else
                 pendingDebts = debts;
                 totalDebts = debts.Sum(d => d.Debtamount);
 
+
+
                 recentTransactions = TransactionService.GetTransactionsByUserId(user.UserId);
 
                 ApplyDateFilter();
 
                 // Update the chart data
                 chartData = new double[] { totalInflows, totalOutflows };
+
+                // totalClearedDebt = takeDebtComponent?.GetTotalClearedDebt() ?? 0;
             }
         }
         catch (Exception ex)
@@ -301,6 +332,8 @@ else
             Console.WriteLine($"Error initializing dashboard: {ex.Message}");
         }
     }
+
+
 
     private void ApplyDateFilter()
     {
@@ -324,6 +357,8 @@ else
 
         // Update the chart data after filtering
         chartData = new double[] { totalInflows, totalOutflows };
+
+        CalculateTotalTransactions();
     }
 
     private void SortByAmount()
@@ -337,6 +372,8 @@ else
             filteredRecentTransactions = filteredRecentTransactions.OrderBy(t => t.transactionamount).ToList();
         }
         isAmountAscending = !isAmountAscending;
+
+        CalculateTotalTransactions();
     }
 
     private void SortByDate()
@@ -350,5 +387,22 @@ else
             filteredRecentTransactions = filteredRecentTransactions.OrderBy(t => t.transactiondate).ToList();
         }
         isDateAscending = !isDateAscending;
+
+        CalculateTotalTransactions();
+    }
+
+
+
+    private void CalculateTotalTransactions()
+    {
+        totalTransaction = filteredRecentTransactions
+            .Where(t => t.transactiontype == "Credit")
+            .Sum(t => t.transactionamount)
+            + filteredRecentTransactions
+            .Where(t => t.transactiontype == "Debt")
+            .Sum(t => t.transactionamount)
+            - filteredRecentTransactions
+            .Where(t => t.transactiontype == "Debit")
+            .Sum(t => t.transactionamount);
     }
 }
